@@ -3,28 +3,22 @@
 $DvSwitchLeft = 10
 # End of Settings
 
-$vdspg = Get-VDSwitch | sort Name | Get-VDPortgroup
+# Changelog
+# 1.0 - Inital release
+# 1.1 - Performance improvements
+
 $ImpactedDVS = @() 
 
-Foreach ($i in $vdspg | where {$_.IsUplink -ne 'True' -and $_.PortBinding -ne 'Ephemeral'} ) {
+Foreach ($PortGroup in (Get-VDPortgroup | where {$_.IsUplink -ne 'True' -and $_.PortBinding -ne 'Ephemeral'} )) {
+	$OpenPorts = ($Portgroup.NumPorts - (($Portgroup.ExtensionData.VM).Count))
 
-$PG = Get-VDPortgroup $i
-$NumPorts = $PG.NumPorts
-$NumVMs = ($PG.ExtensionData.VM).Count
-$OpenPorts = $NumPorts - $NumVMs
-
-If ($OpenPorts -lt $DvSwitchLeft) {
-
-
-$myObj = "" | select vDSwitch,Name,OpenPorts
-$myObj.vDSwitch = $i.VDSwitch
-$myObj.Name = $i.Name
-$myObj.OpenPorts = $OpenPorts
-
-$ImpactedDVS += $myObj
-
-}
-
+	If ($OpenPorts -lt $DvSwitchLeft) {
+		$myObj = "" | select VirtualSwitch,Name,OpenPorts
+		$myObj.VirtualSwitch = $PortGroup.VirtualSwitch.Name
+		$myObj.Name = $PortGroup.Name
+		$myObj.OpenPorts = $OpenPorts
+		$ImpactedDVS += $myObj
+	}
 }
 
 $ImpactedDVS
@@ -33,6 +27,6 @@ $Title = "Checking Distributed vSwitch Port Groups for Ports Free"
 $Header =  "Distributed vSwitch Port Groups with less than $vSwitchLeft Port(s) Free: $(@($ImpactedDVS).Count)"
 $Comments = "The following Distributed vSwitch Port Groups have less than $vSwitchLeft left"
 $Display = "Table"
-$Author = "Kyle Ruddy"
+$Author = "Kyle Ruddy, Sam McGeown"
 $PluginVersion = 1.1
 $PluginCategory = "vSphere"
